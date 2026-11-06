@@ -1,10 +1,10 @@
-langchain
-langchain-core
-langchain-community
-langchain-google-genai
-langchain-chroma
-chromadb
-pymupdf
+langchain==1.4.3
+langchain-core==1.7.3
+langchain-community==<version>
+langchain-google-genai==4.4.2
+langchain-chroma==1.1.0
+chromadb==1.5.9
+pymupdf==<version>
 python-dotenv
 fastapi
 uvicorn[standard]
