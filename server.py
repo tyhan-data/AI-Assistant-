@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
+from src.indexing_layer import ensure_vector_store
 from src.user_layer import create_rag_chain
 
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +19,10 @@ log = logging.getLogger("twin")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    log.info("Preparing ChromaDB...")
+
+    ensure_vector_store()
 
     log.info("Initializing Tyhan AI RAG chain...")
 

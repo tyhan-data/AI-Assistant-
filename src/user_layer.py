@@ -33,24 +33,6 @@ embedding = GoogleGenerativeAIEmbeddings(
 )
 
 
-# Load existing vector database
-vector_store = Chroma(
-    collection_name="introduction",
-    embedding_function=embedding,
-    persist_directory=str(DB_PATH)
-)
-
-
-# Create MMR retriever
-retriever = vector_store.as_retriever(
-    search_type="mmr",
-    search_kwargs={
-        "k": 5,
-        "fetch_k": 10,
-        "lambda_mult": 0.5
-    }
-)
-
 
 # Initialize LLM
 llm = ChatGoogleGenerativeAI(
@@ -158,6 +140,28 @@ def format_docs(docs):
 
 # Build RAG chain
 def create_rag_chain():
+
+    vector_store = Chroma(
+        collection_name="introduction",
+        embedding_function=embedding,
+        persist_directory=str(DB_PATH)
+    )
+
+    count = vector_store._collection.count()
+
+    if count == 0:
+        raise RuntimeError("ChromaDB collection is empty!")
+
+    print(f"ChromaDB loaded successfully: {count} documents.")
+
+    retriever = vector_store.as_retriever(
+        search_type="mmr",
+        search_kwargs={
+            "k": 5,
+            "fetch_k": 10,
+            "lambda_mult": 0.5
+        }
+    )
 
     chain = (
         {

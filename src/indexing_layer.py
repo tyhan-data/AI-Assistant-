@@ -1,39 +1,50 @@
 from pathlib import Path
-
 from dotenv import load_dotenv
+
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import TextLoader
 from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 
-
-# Load environment variables
 load_dotenv()
 
-
-# Project paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 DATA_PATH = BASE_DIR / "data" / "Tyhan_Personal_RAG_Knowledge_Base.txt"
-
 DB_PATH = BASE_DIR / "chroma_db"
 
-
-# Initialize embedding model
 embedding = GoogleGenerativeAIEmbeddings(
     model="gemini-embedding-001",
     api_version="v1beta"
 )
 
 
-# Create vector store
-def create_vector_store():
+def ensure_vector_store():
 
-    # Load documents
-    loader = TextLoader(str(DATA_PATH), encoding="utf-8")
+    if not DATA_PATH.is_file():
+        raise FileNotFoundError(f"Knowledge base not found: {DATA_PATH}")
+
+    DB_PATH.mkdir(parents=True, exist_ok=True)
+
+    vector_store = Chroma(
+        collection_name="introduction",
+        embedding_function=embedding,
+        persist_directory=str(DB_PATH)
+    )
+
+    existing_count = vector_store._collection.count()
+
+    if existing_count > 0:
+        print(f"Database already contains {existing_count} documents.")
+        return vector_store
+
+    loader = TextLoader(
+        str(DATA_PATH),
+        encoding="utf-8"
+    )
+
     docs = loader.load()
 
-    # Split documents
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=700,
         chunk_overlap=80
@@ -41,21 +52,20 @@ def create_vector_store():
 
     chunks = splitter.split_documents(docs)
 
+    if not chunks:
+        raise ValueError("No document chunks were created.")
+
     print(f"Total chunks created: {len(chunks)}")
 
-    # Store documents in Chroma
-    vector_store = Chroma.from_documents(
-        documents=chunks,
-        embedding=embedding,
-        collection_name="introduction",
-        persist_directory=str(DB_PATH)
-    )
+    vector_store.add_documents(chunks)
 
-    print("Vector database created successfully!")
+    print(
+        f"Vector database created successfully. "
+        f"Stored documents: {vector_store._collection.count()}"
+    )
 
     return vector_store
 
 
-# Run indexing only when this file is executed directly
 if __name__ == "__main__":
-    create_vector_store()
+    ensure_vector_store()
