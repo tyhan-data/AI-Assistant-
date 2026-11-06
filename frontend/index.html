@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tyhan AI Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060a13;--panel:#0d1424;--line:#1f2a40;--text:#eaf0fb;--mute:#8d9ab3;--coral:#ff7a59;--cyan:#6fe3ff}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{background:radial-gradient(900px 600px at 50% 55%,#12203d,var(--bg));color:var(--text);font-family:Sora,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* 3D canvas fills the screen; robot is always centered */
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:manipulation;transition:transform .5s cubic-bezier(.2,.8,.2,1);transform-origin:50% 55%}
+.fallback{display:none;position:fixed;inset:0;place-items:center;text-align:center;color:var(--mute);padding:20px}
+.no-webgl .fallback{display:grid}
+
+/* top bar */
+.top{position:fixed;inset:0 0 auto 0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:12px clamp(12px,3vw,28px)}
+.brand{font-weight:700;letter-spacing:.06em;font-size:14px}
+.brand i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--coral);margin-right:8px}
+.top nav{display:flex;gap:8px}
+.pill{background:#0d1424cc;border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:12px;backdrop-filter:blur(6px)}
+.pill:hover{border-color:var(--cyan)}
+
+/* short title + live status */
+.title{position:fixed;top:58px;left:0;right:0;text-align:center;z-index:3;pointer-events:none;padding:0 16px;transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .3s}
+h1{font-size:clamp(22px,3.4vw,36px);line-height:1.1;font-weight:700}
+h1 b{color:var(--coral)}
+.sub{color:var(--mute);font-size:13px;margin-top:6px}
+.state{display:inline-flex;align-items:center;gap:7px;margin-top:10px;font-size:11px;color:var(--mute);background:#0d1424cc;border:1px solid var(--line);border-radius:999px;padding:4px 11px}
+.state b{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.state[data-s=error] b{background:#e0a24a}
+.state[data-s=thinking] b,.state[data-s=speaking] b{background:var(--coral)}
+
+/* bottom dock: section chips + chat button */
+.dock{position:fixed;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));z-index:4;display:flex;flex-direction:column;align-items:center;gap:12px;pointer-events:none;transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.dock>*{pointer-events:auto}
+.navbtns{display:flex;gap:8px;max-width:100%;overflow-x:auto;padding:2px 14px;scrollbar-width:none}
+.navbtns::-webkit-scrollbar{display:none}
+.chip{background:#0d1424cc;border:1px solid var(--line);border-radius:999px;padding:8px 15px;font-size:13px;white-space:nowrap;flex:none;backdrop-filter:blur(6px)}
+.chip:hover{border-color:var(--coral)}
+.launch{display:flex;align-items:center;gap:10px;background:var(--coral);color:#1a0b05;border:0;border-radius:999px;padding:12px 22px;font-weight:700;font-size:14px;box-shadow:0 8px 30px #ff7a5955}
+body.chat-open .launch{display:none}
+
+/* chat panel */
+.chat{position:fixed;right:20px;bottom:20px;width:370px;height:min(540px,calc(100dvh - 100px));background:var(--panel);border:1px solid var(--line);border-radius:20px;z-index:8;display:none;flex-direction:column;box-shadow:0 20px 60px #000a;overflow:hidden}
+.chat.open{display:flex;animation:pop .25s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}}
+.chead{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--line)}
+.chead strong{font-size:14px;display:block}.chead small{font-size:11px;color:var(--mute)}
+.chead div:last-child{display:flex;gap:6px}
+.ib{background:none;border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:12px}
+.msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:9px}
+.m{max-width:92%;padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}
+.m.u{align-self:flex-end;background:var(--coral);color:#1a0b05;white-space:pre-wrap}
+.m.a{align-self:flex-start;background:#17213a;box-shadow:inset 3px 0 0 var(--coral)}
+.m.err{background:#3a2a17;border:1px solid #e0a24a;box-shadow:none}
+.m button{margin-top:8px;display:block}
+.m p{margin:0 0 7px}.m>:last-child{margin-bottom:0}
+.m ul,.m ol{margin:2px 0 7px;padding-left:19px}.m li{margin-bottom:5px}.m li::marker{color:var(--coral)}
+.m strong{color:#fff}.mh{font-weight:700;color:var(--cyan)}
+.m code{background:#0a1120;padding:1px 5px;border-radius:5px;font-size:12.5px}
+.m a{color:var(--cyan)}
+/* suggestions live INSIDE the chat */
+.sugg{border-top:1px solid var(--line);padding:8px 0 2px}
+.tabs,.qs{display:flex;gap:6px;overflow-x:auto;padding:0 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar,.qs::-webkit-scrollbar{display:none}
+.tab{font-size:11px;color:var(--mute);background:none;border:0;padding:3px 8px;border-radius:999px;flex:none}
+.tab.on{color:#1a0b05;background:var(--cyan);font-weight:600}
+.qs{padding-top:6px;padding-bottom:4px}
+.q{flex:none;font-size:12px;background:#111a2e;border:1px solid var(--line);border-radius:999px;padding:6px 12px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q:hover{border-color:var(--coral)}
+.cform{display:flex;gap:8px;padding:8px 10px 10px;align-items:flex-end}
+textarea{flex:1;resize:none;max-height:90px;background:#0a1120;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:9px 11px;font:inherit;font-size:16px}
+.send{background:var(--coral);border:0;color:#1a0b05;border-radius:12px;padding:10px 14px;font-weight:700;font-size:13px}
+.send:disabled{opacity:.5}
+.mic.on{border-color:var(--coral);color:var(--coral)}
+
+/* info panel */
+.panel{position:fixed;top:0;right:0;height:100dvh;width:min(420px,100vw);background:var(--panel);border-left:1px solid var(--line);z-index:9;transform:translateX(100%);transition:transform .25s;padding:20px;overflow-y:auto}
+.panel.open{transform:none}
+.panel h2{margin-bottom:14px}
+.card{border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.card h3{font-size:15px;margin-bottom:6px}
+.card p{color:var(--mute);font-size:13.5px;line-height:1.55}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.tags span{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--cyan)}
+.card a{color:var(--coral);margin-right:14px;font-size:14px}
+.cta{display:inline-block;background:var(--coral);color:#1a0b05;border-radius:999px;padding:10px 18px;font-weight:700;text-decoration:none;margin-top:6px}
+
+/* chat open: robot slides aside, never hidden */
+@media(min-width:861px){
+ body.chat-open #c,body.chat-open .title,body.chat-open .dock{transform:translateX(-12vw)}
+}
+@media(max-width:860px){
+ .chat{inset:auto 0 0 0;width:100%;height:60dvh;border-radius:20px 20px 0 0;border-width:1px 0 0}
+ body.chat-open #c{transform:translateY(-21vh) scale(.72)}
+ body.chat-open .dock,body.chat-open .sub,body.chat-open h1{opacity:0;pointer-events:none}
+ .hide-m{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Animated 3D robot assistant"></canvas>
+<div class="fallback"><p>3D view is not available on this device.<br>The assistant still works — open the chat.</p></div>
+
+<header class="top">
+  <div class="brand"><i></i>TYHAN AI TWIN</div>
+  <nav>
+    <button class="pill" id="voiceBtn" aria-pressed="false">Voice: off</button>
+    <button class="pill" id="aboutAI">About</button>
+  </nav>
+</header>
+
+<div class="title">
+  <h1>Hi, I'm <b>Tyhan's</b> AI Twin.</h1>
+  <p class="sub">Ask me about his projects, skills and experience.</p>
+  <div class="state" id="stateLbl" data-s="idle" aria-live="polite"><b></b><span>Ready</span></div>
+</div>
+
+<div class="dock">
+  <div class="navbtns" id="navbtns"></div>
+  <button class="launch" id="openChat">💬 Chat with Tyhan AI</button>
+</div>
+
+<aside class="chat" id="chat" role="dialog" aria-label="Chat with Tyhan AI">
+  <div class="chead"><div><strong>Tyhan AI</strong><small>Answers come from Tyhan's profile</small></div><div><button class="ib" id="clear">Clear</button><button class="ib" id="close" aria-label="Close chat">✕</button></div></div>
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+  <div class="sugg"><div class="tabs" id="tabs"></div><div class="qs" id="qs"></div></div>
+  <div class="cform">
+    <button class="ib mic" id="mic" aria-label="Voice input">🎤</button>
+    <textarea id="inp" rows="1" maxlength="500" placeholder="Ask about Tyhan…" aria-label="Your question"></textarea>
+    <button class="send" id="send">Send</button>
+  </div>
+</aside>
+<aside class="panel" id="panel" aria-label="Details"><button class="ib" id="pclose" style="float:right">Close</button><div id="pbody"></div></aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===================== 1) SETTINGS (edit here) ===================== */
+const API_URL = "";   // same server serves page + chat
+
+const DATA = {
+  projects: [
+    {name:"Freight Rate Predictor", desc:"Machine learning app that predicts freight rates.", tech:["Python","scikit-learn","FastAPI", "Streamlit"],
+     github:"https://github.com/tyhan-data/Freight-Rate-Predictor", demo:"https://freight-rate-predictor.streamlit.app"},
+    {name:"NewsCortex AI", desc:"AI-powered news project.", tech:["Python","NLP","TensorFlow/Keras","FastAPI"],
+     github:"https://github.com/tyhan55/newscortex", demo:"https://newscortex.streamlit.app"},
+    {name:"Spam Detector", desc:"Spam classification project.", tech:["Python","NLP","scikit-learn"],
+     github:"https://github.com/tyhan-data/spam-detector.git", demo:"https://bcftchnrzapp4cgylunkqjv.streamlit.app"},
+    {name:"CineMatch AI", desc:"Movie recommendation project.", tech:["Python", "NLP", "FastAPI"],
+     github:"https://github.com/tyhan-data/cinematch-ai.git", demo:"https://cinematch-ai-by-tyhan.streamlit.app"},
+  ],
+  skills: ["Python","NumPy","Pandas","SQL","scikit-learn","TensorFlow/Keras","NLP","FastAPI","Streamlit","Git/GitHub","Docker","LangChain","RAG applications"],
+  experience: [
+  {
+    role: "Machine Learning Intern",
+    org: "FlyRank AI",
+    status: "Ongoing",
+    note: "Working on ML fundamentals, AI research, and technical problem-solving."
+  },
+  {
+    role: "AI Intern",
+    org: "DecodeLabs",
+    status: "Ongoing",
+    note: "Developing Python-based AI projects, starting with a rule-based chatbot."
+  },
+  {
+    role: "Machine Learning Intern",
+    org: "Auspify Technologies",
+    status: "Completed",
+    note: "Worked on practical ML assignments, including Netflix dataset analysis and predictive modeling."
+  }
+],
+  education: [{name:"Computer Science & Technology", org:"Mymensingh Polytechnic Institute", note:"Expected graduation: 2027"}],
+  contact: [
+    {label:"GitHub", url:"https://github.com/tyhan-data"},
+    {label:"LinkedIn", url:"https://www.linkedin.com/in/mosairul-alam-tyhan/"},
+    // {label:"LinkedIn", url:"PASTE YOUR LINKEDIN URL"},
+  ],
+};
+const IDEAS = {
+  About:["Who is Tyhan?","What does Tyhan do?","What is his educational background?"],
+  Projects:["What ML projects has Tyhan built?","Tell me about Freight Rate Predictor","Tell me about NewsCortex AI","Which projects show deployment skills?"],
+  Skills:["What technologies does he use?","Does he know FastAPI and Docker?","What is he currently learning?"],
+  Experience:["What internships has Tyhan done?","What role is he looking for?"],
+  Career:["How could he contribute to an AI team?","What are his strongest areas?","Where can I see his projects?"],
+};
+const SECTIONS = ["Projects","Skills","Experience","Education","Contact"];
+
+/* ===================== 2) ROBOT STATE ===================== */
+const LABELS = {idle:"Ready",listening:"Listening",thinking:"Thinking…",speaking:"Speaking",error:"Assistant unavailable",greeting:"Hello!"};
+let state = "idle";
+const stateLbl = document.getElementById("stateLbl");
+function setState(s){ state = s; stateLbl.dataset.s = s; stateLbl.lastChild.textContent = LABELS[s]; }
+
+/* ===================== 3) 3D SCENE ===================== */
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const MOBILE = matchMedia("(max-width: 860px)").matches;
+const canvas = document.getElementById("c");
+let renderer = null;
+try { if(typeof THREE==='undefined') throw new Error('three.js not loaded'); renderer = new THREE.WebGLRenderer({canvas, antialias:!MOBILE, alpha:true}); }
+catch(e){ document.body.classList.add("no-webgl"); }
+
+if (renderer) {
+  renderer.setPixelRatio(Math.min(devicePixelRatio, MOBILE ? 1.5 : 2));
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(38, 1, .1, 100);
+  scene.add(new THREE.HemisphereLight(0xaad0ff, 0x24103a, 1));
+  const key = new THREE.DirectionalLight(0xffffff, 1.2); key.position.set(3,6,5); scene.add(key);
+  const rim = new THREE.PointLight(0xff7a59, 1.6, 14); rim.position.set(-4,3,-2); scene.add(rim);
+  const fill = new THREE.PointLight(0x6fe3ff, 1.1, 14); fill.position.set(4,2,3); scene.add(fill);
+
+  const mat=(c,e=0,m=.3,r=.4)=>new THREE.MeshStandardMaterial({color:c,emissive:e,emissiveIntensity:e?1:0,metalness:m,roughness:r});
+  const add=(m)=>new THREE.MeshBasicMaterial({color:m,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const shell = mat(0xeaf0fc,0,.25,.22), dark = mat(0x070b16,0,.7,.12);
+
+  // rounded box (smooth, friendly shapes instead of hard cubes)
+  function rbox(w,h,d,r,m,b=.05){
+    w-=2*b; h-=2*b; r=Math.min(r,w/2,h/2); const x=-w/2,y=-h/2, s=new THREE.Shape();
+    s.moveTo(x+r,y); s.lineTo(x+w-r,y); s.quadraticCurveTo(x+w,y,x+w,y+r); s.lineTo(x+w,y+h-r); s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    s.lineTo(x+r,y+h); s.quadraticCurveTo(x,y+h,x,y+h-r); s.lineTo(x,y+r); s.quadraticCurveTo(x,y,x+r,y);
+    const dep=d-2*b, g=new THREE.ExtrudeGeometry(s,{depth:dep,bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8});
+    g.translate(0,0,-dep/2); return new THREE.Mesh(g,m);
+  }
+  function glowTex(){ const c=document.createElement("canvas"); c.width=c.height=64; const g=c.getContext("2d"), gr=g.createRadialGradient(32,32,0,32,32,32);
+    gr.addColorStop(0,"rgba(255,255,255,1)"); gr.addColorStop(.4,"rgba(255,255,255,.35)"); gr.addColorStop(1,"rgba(255,255,255,0)"); g.fillStyle=gr; g.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); }
+  const GT = glowTex();
+  const glow=(color,s)=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:GT,color,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false})); sp.scale.set(s,s,1); return sp; };
+
+  const world = new THREE.Group(); scene.add(world);
+
+  /* --- holographic platform --- */
+  const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.4,.16,64), mat(0x0a1226,0,.7,.25)); plat.position.y=-.1; world.add(plat);
+  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(2.05,.035,8,96), mat(0xff7a59,0xff7a59)); ring1.rotation.x=Math.PI/2; world.add(ring1);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.55,.022,8,96), mat(0x6fe3ff,0x6fe3ff)); ring2.rotation.x=Math.PI/2; ring2.position.y=.01; world.add(ring2);
+  const TICKS=56, ticks=new THREE.InstancedMesh(new THREE.BoxGeometry(.04,.02,.16), new THREE.MeshBasicMaterial({color:0xffb347}), TICKS), dm=new THREE.Object3D();
+  for(let i=0;i<TICKS;i++){ const a=i/TICKS*Math.PI*2; dm.position.set(Math.cos(a)*2.3,.0,Math.sin(a)*2.3); dm.rotation.y=-a; dm.updateMatrix(); ticks.setMatrixAt(i,dm.matrix); }
+  world.add(ticks);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.9,3.4,40,1,true), add(0x6fe3ff)); beam.material.opacity=.06; beam.position.y=1.7; world.add(beam);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(1.1,32), new THREE.MeshBasicMaterial({map:GT,color:0x000000,transparent:true,opacity:.65,depthWrite:false}));
+  shadow.rotation.x=-Math.PI/2; shadow.position.y=.0; world.add(shadow);
+
+  /* --- ROBOT --- */
+  const robot = new THREE.Group(); world.add(robot);
+  const torso = rbox(1.05,1.0,.78,.36,shell); torso.position.y=1.0; robot.add(torso);
+  const chestP = rbox(.52,.3,.06,.12,dark,.02); chestP.position.set(0,1.02,.4); robot.add(chestP);
+  const core = new THREE.Mesh(new THREE.CircleGeometry(.085,24), mat(0xff7a59,0xff7a59)); core.position.set(0,1.02,.44); robot.add(core);
+  const coreGlow = glow(0xff7a59,.5); coreGlow.position.set(0,1.02,.46); robot.add(coreGlow);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,.2,16), dark); neck.position.y=1.58; robot.add(neck);
+  const jet = new THREE.Mesh(new THREE.ConeGeometry(.3,.6,20,1,true), add(0x6fe3ff)); jet.rotation.x=Math.PI; jet.position.y=.18; robot.add(jet);
+  const jetGlow = glow(0x6fe3ff,.9); jetGlow.position.y=.42; robot.add(jetGlow);
+
+  const head = new THREE.Group(); head.position.y=2.25; robot.add(head);
+  head.add(rbox(1.5,1.12,1.0,.45,shell));
+  const visor = rbox(1.18,.74,.12,.32,dark,.03); visor.position.z=.47; head.add(visor);
+  const eyeMat = new THREE.MeshBasicMaterial({color:0x6fe3ff});
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(1,20,16), eyeMat); eyeL.scale.set(.1,.14,.03); eyeL.position.set(-.27,.07,.55);
+  const eyeR = eyeL.clone(); eyeR.position.x=.27; head.add(eyeL,eyeR);
+  const gL = glow(0x6fe3ff,.6), gR = glow(0x6fe3ff,.6); gL.position.copy(eyeL.position); gR.position.copy(eyeR.position); gL.position.z+=.05; gR.position.z+=.05; head.add(gL,gR);
+  const blush = new THREE.MeshBasicMaterial({color:0xff7a59,transparent:true,opacity:.45});
+  [-.43,.43].forEach(x=>{ const b=new THREE.Mesh(new THREE.CircleGeometry(.07,16),blush); b.scale.y=.6; b.position.set(x,-.12,.54); head.add(b); });
+  const mouthMat = new THREE.MeshBasicMaterial({color:0x6fe3ff});
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(.11,.016,8,20,Math.PI), mouthMat); mouth.position.set(0,-.12,.55); mouth.rotation.z=Math.PI; head.add(mouth);
+  [-1,1].forEach(sx=>{ const ear=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.2,24), dark); ear.rotation.z=Math.PI/2; ear.position.set(sx*.82,0,0); head.add(ear);
+    const er=new THREE.Mesh(new THREE.TorusGeometry(.13,.02,8,24), mat(0xff7a59,0xff7a59)); er.rotation.y=Math.PI/2; er.position.set(sx*.93,0,0); head.add(er); });
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.34,10), shell); ant.position.y=.72; head.add(ant);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(.075,14,14), mat(0xff7a59,0xff7a59)); tip.position.y=.92; head.add(tip);
+  const tipGlow = glow(0xff7a59,.5); tipGlow.position.y=.92; head.add(tipGlow);
+  const dots = new THREE.Group(); head.add(dots); dots.visible=false;
+  for(let i=0;i<3;i++){ const d=new THREE.Mesh(new THREE.SphereGeometry(.05,10,10), new THREE.MeshBasicMaterial({color:0xff7a59})); dots.add(d); }
+
+  // floating hands
+  const mkHand=()=>{ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.SphereGeometry(.17,20,16),shell));
+    const r=new THREE.Mesh(new THREE.TorusGeometry(.17,.02,8,24), mat(0xff7a59,0xff7a59)); r.rotation.x=Math.PI/2; r.position.y=-.02; g.add(r); return g; };
+  const handL=mkHand(), handR=mkHand(); handL.position.set(-.92,.9,.12); handR.position.set(.92,.9,.12); robot.add(handL,handR);
+
+  /* --- orbit + floating nodes --- */
+  const orbitG = new THREE.Group(); orbitG.position.y=1.7; world.add(orbitG);
+  const orbit = new THREE.Mesh(new THREE.TorusGeometry(3,.012,6,120), new THREE.MeshBasicMaterial({color:0x3d4f7d})); orbit.rotation.x=Math.PI/2; orbitG.add(orbit);
+  const orbit2 = new THREE.Mesh(new THREE.TorusGeometry(2.6,.008,6,100), new THREE.MeshBasicMaterial({color:0x2a3a60,transparent:true,opacity:.7})); orbit2.rotation.set(Math.PI/2.6,0,.5); orbitG.add(orbit2);
+  const sat = new THREE.Mesh(new THREE.SphereGeometry(.06,10,10), new THREE.MeshBasicMaterial({color:0x6fe3ff})); orbitG.add(sat);
+  function label(text){
+    const cv=document.createElement("canvas"); cv.width=256; cv.height=64; const g=cv.getContext("2d");
+    g.fillStyle="#eaf0fb"; g.font="600 30px Sora, sans-serif"; g.textAlign="center"; g.fillText(text,128,42);
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false})); s.scale.set(1.15,.29,1); return s;
+  }
+  const nodes = new THREE.Group(); orbitG.add(nodes); const nodeMeshes=[], nodeBodies=[];
+  SECTIONS.forEach((name,i)=>{
+    const a=i/SECTIONS.length*Math.PI*2, g=new THREE.Group(), c=i%2?0x6fe3ff:0xff7a59;
+    g.position.set(Math.cos(a)*3,0,Math.sin(a)*3);
+    const m=new THREE.Mesh(new THREE.SphereGeometry(.15,18,18), mat(c,c)); const gl=glow(c,.7);
+    const hit=new THREE.Mesh(new THREE.SphereGeometry(.5,8,8), new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})); hit.userData.section=name;
+    const l=label(name); l.position.y=.4; g.add(m,gl,hit,l); nodes.add(g); nodeMeshes.push(hit); nodeBodies.push(m);
+  });
+
+  /* --- particles: static stars + data rising from the platform --- */
+  const SN = MOBILE ? 90 : 220, sp = new Float32Array(SN*3);
+  for(let i=0;i<SN;i++) sp.set([(Math.random()-.5)*26, Math.random()*12-2, -3-Math.random()*8], i*3);
+  const sg=new THREE.BufferGeometry(); sg.setAttribute("position",new THREE.BufferAttribute(sp,3));
+  const stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0x9fb4d9,size:.05,transparent:true,opacity:.75})); scene.add(stars);
+  const RN = MOBILE ? 24 : 50, rp = new Float32Array(RN*3);
+  for(let i=0;i<RN;i++){ const a=Math.random()*6.28, r=Math.random()*1.7; rp.set([Math.cos(a)*r, Math.random()*3.2, Math.sin(a)*r], i*3); }
+  const rg=new THREE.BufferGeometry(); rg.setAttribute("position",new THREE.BufferAttribute(rp,3));
+  world.add(new THREE.Points(rg,new THREE.PointsMaterial({color:0x6fe3ff,size:.045,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false})));
+
+  /* --- sizing: robot always centered; orbit shrinks on narrow screens --- */
+  function resize(){
+    const w=innerWidth, h=innerHeight, asp=w/h; renderer.setSize(w,h,false); cam.aspect=asp;
+    const s = asp<.8 ? .55 : asp<1.1 ? .78 : 1; orbitG.scale.setScalar(s);
+    const d = Math.max(9.8, 4.4/(asp*.689)*(asp<.8?1:.8));
+    cam.position.set(0,2.5,d); cam.lookAt(0,1.9,0); cam.updateProjectionMatrix();
+  }
+  addEventListener("resize",resize); resize();
+
+  /* --- interaction: click nodes, robot looks at pointer --- */
+  const ray=new THREE.Raycaster(), ptr=new THREE.Vector2(), look={x:0,y:0};
+  const toNdc=(e)=>{ const r=canvas.getBoundingClientRect(); ptr.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1); ray.setFromCamera(ptr,cam); };
+  canvas.addEventListener("pointerdown",e=>{ toNdc(e); const hit=ray.intersectObjects(nodeMeshes)[0]; if(hit) openPanel(hit.object.userData.section); });
+  canvas.addEventListener("pointermove",e=>{ toNdc(e); canvas.style.cursor = ray.intersectObjects(nodeMeshes).length ? "pointer":"default"; });
+  addEventListener("pointermove",e=>{ look.x=(e.clientX/innerWidth-.5)*2; look.y=(e.clientY/innerHeight-.5)*2; });
+
+  /* --- animation loop --- */
+  const clock=new THREE.Clock(); let prev=0, blinkAt=2, greetUntil=0;
+  const tgt={y:0,x:0,z:0}, col=new THREE.Color();
+  window.__greet=()=>{ if(state==="idle"){ setState("greeting"); greetUntil=clock.elapsedTime+2.6; } };
+  const lerp=(a,b,f)=>a+(b-a)*f;
+  function loop(){
+    const t=clock.getElapsedTime(), dt=Math.min(t-prev,.05); prev=t; const k=RM?.15:1;
+    const sp_=state==="thinking"?2.4:1;
+    // floating
+    const bob=Math.sin(t*1.6)*.09*k; robot.position.y=.4+bob; shadow.scale.setScalar(2.2-bob*1.2);
+    jet.material.opacity=.4+Math.sin(t*14)*.08; jetGlow.material.opacity=.7+Math.sin(t*9)*.15;
+    // platform + orbit
+    ring1.rotation.z=t*.3*k; ring2.rotation.z=-t*.5*k*sp_; ticks.rotation.y=t*.12*k; nodes.rotation.y=t*.16*k; orbit2.rotation.z=.5+t*.1*k;
+    sat.position.set(Math.cos(t*.7*k)*3,0,Math.sin(t*.7*k)*3);
+    stars.rotation.y=t*.01*k;
+    ring1.scale.setScalar(state==="speaking"?1+Math.sin(t*10)*.015:1);
+    beam.visible = state!=="error"; beam.material.opacity=.05+Math.sin(t*2)*.015;
+    // eye / mouth colour per state
+    col.setHex(state==="error"?0xe0a24a:(state==="thinking"||state==="speaking")?0xffa07a:0x6fe3ff);
+    eyeMat.color.copy(col); mouthMat.color.copy(col); gL.material.color.copy(col); gR.material.color.copy(col);
+    const gs = state==="listening"?.9:state==="error"?.3:.6; gL.scale.setScalar(lerp(gL.scale.x,gs,.12)); gR.scale.setScalar(gL.scale.x);
+    // head targets (follows pointer when it makes sense)
+    const follow = state==="idle"||state==="greeting"||state==="speaking" ? 1:0;
+    tgt.y = Math.sin(t*.6)*.08*k + look.x*.35*follow*k; tgt.x = look.y*.18*follow*k; tgt.z=0;
+    if(state==="listening"){ tgt.y=.3; tgt.x=.04; }
+    if(state==="thinking"){ tgt.x=-.12; tgt.y=Math.sin(t*1.2)*.12; }
+    if(state==="speaking"){ tgt.x+=Math.sin(t*3)*.03; }
+    if(state==="error"){ tgt.x=.2; }
+    if(state==="greeting"){ tgt.z=.2; if(t>greetUntil) setState("idle"); }
+    head.rotation.y=lerp(head.rotation.y,tgt.y,.08); head.rotation.x=lerp(head.rotation.x,tgt.x,.08); head.rotation.z=lerp(head.rotation.z,tgt.z,.08);
+    // blink + thinking scan
+    let ey=1; if(t>blinkAt){ ey=.1; if(t>blinkAt+.12) blinkAt=t+2+Math.random()*3; }
+    const ex = state==="thinking" ? 1+Math.sin(t*6)*.5 : 1;
+    eyeL.scale.set(.1*ex,.14*ey,.03); eyeR.scale.set(.1*ex,.14*ey,.03);
+    // mouth: smile / moves only while speech is really playing / frown on error
+    mouth.rotation.z = state==="error"?0:Math.PI; mouth.position.y = state==="error"?-.26:-.12;
+    mouth.scale.y = state==="speaking" ? .4+Math.abs(Math.sin(t*13))*1.5 : 1;
+    // antenna pulse (faster when listening)
+    const pr=state==="listening"?9:3; tipGlow.scale.setScalar(.5+Math.sin(t*pr)*.12); coreGlow.scale.setScalar(.5+Math.sin(t*2)*.08);
+    // thinking dots
+    dots.visible = state==="thinking";
+    if(dots.visible) dots.children.forEach((d,i)=>{ const a=t*3+i*2.1; d.position.set(Math.cos(a)*.95,.75,Math.sin(a)*.95); });
+    // hands
+    const hy = state==="error"?.55:.9;
+    handL.position.y=lerp(handL.position.y,hy+Math.sin(t*1.6+1)*.05*k,.1);
+    handR.position.x=lerp(handR.position.x,state==="greeting"?1.05:.92,.1);
+    handR.position.y=lerp(handR.position.y,state==="greeting"?1.9+Math.sin(t*9)*.14:hy+Math.sin(t*1.6)*.05*k+(state==="speaking"?Math.sin(t*3)*.08:0),.12);
+    // rising data
+    if(!RM){ for(let i=0;i<RN;i++){ rp[i*3+1]+=dt*.45; if(rp[i*3+1]>3.2) rp[i*3+1]=0; } rg.attributes.position.needsUpdate=true; }
+    renderer.render(scene,cam); requestAnimationFrame(loop);
+  }
+  loop(); setTimeout(()=>window.__greet(),700);
+}
+
+/* ===================== 4) PANELS ===================== */
+const panel=document.getElementById("panel"), pbody=document.getElementById("pbody");
+const el=(tag,cls,txt)=>{const n=document.createElement(tag); if(cls) n.className=cls; if(txt) n.textContent=txt; return n;};
+function link(a,t,u){ const x=el("a",null,t); x.href=u; x.target="_blank"; x.rel="noopener"; a.append(x); }
+function card(title,text,tags,links){
+  const c=el("div","card"); c.append(el("h3",null,title)); if(text) c.append(el("p",null,text));
+  if(tags&&tags.length){ const t=el("div","tags"); tags.forEach(x=>t.append(el("span",null,x))); c.append(t); }
+  if(links) links.filter(l=>l[1]).forEach(l=>link(c,l[0],l[1])); return c;
+}
+function openPanel(name){
+  pbody.replaceChildren(el("h2",null,name));
+  if(name==="Projects"){ DATA.projects.forEach(p=>pbody.append(card(p.name,p.desc,p.tech,[["Live demo",p.demo],["GitHub",p.github]])));
+    const a=el("a","cta","Explore My Portfolio"); a.href="https://mat-red.vercel.app/"; a.target="_blank"; a.rel="noopener"; pbody.append(a); }
+  if(name==="Skills") pbody.append(card("Documented skills","From my projects and learning. Ask the chat what I'm currently learning.",DATA.skills));
+  if(name==="Experience"){ if(DATA.experience.length) DATA.experience.forEach(x=>pbody.append(card(x.role+" · "+x.org,x.note,[x.status])));
+    else pbody.append(card("Ask the assistant","Open the chat and ask: “What internships has Tyhan done?”")); }
+  if(name==="Education") DATA.education.forEach(x=>pbody.append(card(x.name,x.org+" — "+x.note)));
+  if(name==="Contact") DATA.contact.forEach(c=>pbody.append(card(c.label,null,null,[["Open",c.url]])));
+  panel.classList.add("open");
+}
+document.getElementById("pclose").onclick=()=>panel.classList.remove("open");
+const nb=document.getElementById("navbtns"); SECTIONS.forEach(s=>{const b=el("button","chip",s); b.onclick=()=>openPanel(s); nb.append(b);});
+document.getElementById("aboutAI").onclick=()=>{ pbody.replaceChildren(el("h2",null,"About this assistant"),
+  card("How it works","Your question goes to a Python backend that searches Tyhan's profile documents and asks Gemini to answer using only what it finds. If it isn't in the profile, the assistant should say so. Voice uses your browser's built-in speech, not Tyhan's real voice.")); panel.classList.add("open"); };
+
+/* ===================== 5) MARKDOWN (safe: no innerHTML) ===================== */
+function inline(parent,text){
+  const re=/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/g; let last=0,m;
+  while((m=re.exec(text))){
+    if(m.index>last) parent.append(text.slice(last,m.index));
+    const t=m[0];
+    if(t.startsWith("**")){ const b=el("strong"); inline(b,t.slice(2,-2)); parent.append(b); }
+    else if(t[0]==="`") parent.append(el("code",null,t.slice(1,-1)));
+    else if(t[0]==="["){ const mm=t.match(/\[([^\]]+)\]\((.+)\)/); link(parent,mm[1],mm[2]); }
+    else parent.append(el("em",null,t.slice(1,-1)));
+    last=m.index+t.length;
+  }
+  if(last<text.length) parent.append(text.slice(last));
+}
+function renderMd(src){
+  const box=document.createDocumentFragment(); let list=null, para=[];
+  const flush=()=>{ if(para.length){ const p=el("p"); inline(p,para.join(" ")); box.append(p); para=[]; } };
+  for(const raw of src.split("\n")){
+    const line=raw.trimEnd(); let m;
+    if((m=line.match(/^\s*[*\-•]\s+(.*)/))||(m=line.match(/^\s*\d+[.)]\s+(.*)/))){
+      flush(); const tag=/^\s*\d/.test(line)?"ol":"ul";
+      if(!list||list.tagName.toLowerCase()!==tag){ list=el(tag); box.append(list); }
+      const li=el("li"); inline(li,m[1]); list.append(li);
+    } else if(!line.trim()){ flush(); list=null; }
+    else if((m=line.match(/^#{1,4}\s+(.*)/))){ flush(); list=null; const h=el("p","mh"); inline(h,m[1]); box.append(h); }
+    else { list=null; para.push(line.trim()); }
+  }
+  flush(); return box;
+}
+
+/* ===================== 6) CHAT ===================== */
+const chat=document.getElementById("chat"), msgs=document.getElementById("msgs"), inp=document.getElementById("inp"), sendBtn=document.getElementById("send");
+let busy=false, sessionId=(crypto.randomUUID?crypto.randomUUID():String(Date.now())), lastQ="", recOn=false;
+function openChat(){ chat.classList.add("open"); document.body.classList.add("chat-open"); if(!MOBILE) inp.focus(); }
+function closeChat(){ chat.classList.remove("open"); document.body.classList.remove("chat-open"); if(!busy) setState("idle"); }
+document.getElementById("openChat").onclick=openChat; document.getElementById("close").onclick=closeChat;
+document.getElementById("clear").onclick=()=>{ if(busy) return; msgs.replaceChildren(); sessionId=crypto.randomUUID?crypto.randomUUID():String(Date.now()); stopSpeech(); setState("idle"); welcome(); };
+function addMsg(text,cls){ const m=el("div","m "+cls); if(cls==="a") m.append(renderMd(text)); else m.textContent=text; msgs.append(m); msgs.scrollTop=msgs.scrollHeight; return m; }
+function welcome(){ addMsg("Hi! I'm Tyhan's AI Twin. Pick a question below or type your own.","a"); }
+welcome();
+
+async function ask(q){
+  q=q.trim(); if(!q||busy) return;           // blocks duplicate submissions
+  busy=true; sendBtn.disabled=true; lastQ=q; inp.value=""; inp.style.height="auto"; openChat(); stopSpeech();
+  addMsg(q,"u"); setState("thinking");
+  const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),45000);
+  try{
+    const r=await fetch(API_URL+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q,conversation_id:sessionId}),signal:ctl.signal});
+    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail||("Error "+r.status));
+    const data=await r.json(); addMsg(data.answer,"a");
+    if(!(voiceOn && speak(data.answer))) setState("idle");
+  }catch(e){
+    const m=addMsg("I couldn't get an answer. "+(e.name==="AbortError"?"The request timed out.":"The assistant service may be offline."),"a err");
+    const b=el("button","ib","Retry"); b.onclick=()=>{ m.remove(); ask(lastQ); }; m.append(b); setState("error");
+  }finally{ clearTimeout(to); busy=false; sendBtn.disabled=false; }
+}
+sendBtn.onclick=()=>ask(inp.value);
+inp.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); ask(inp.value); }});
+inp.addEventListener("input",()=>{ inp.style.height="auto"; inp.style.height=Math.min(inp.scrollHeight,90)+"px"; if(!busy) setState(inp.value?"listening":"idle"); });
+inp.addEventListener("blur",()=>{ if(!busy&&state==="listening"&&!recOn) setState("idle"); });
+
+// suggestions inside the chat: category tabs + a scrollable row of questions
+let cat="About"; const tabsEl=document.getElementById("tabs"), qsEl=document.getElementById("qs");
+function showIdeas(){
+  tabsEl.replaceChildren(); qsEl.replaceChildren();
+  Object.keys(IDEAS).forEach(c=>{ const b=el("button","tab"+(c===cat?" on":""),c); b.onclick=()=>{cat=c; showIdeas();}; tabsEl.append(b); });
+  IDEAS[cat].forEach(q=>{ const b=el("button","q",q); b.title=q; b.onclick=()=>ask(q); qsEl.append(b); });
+}
+showIdeas();
+
+/* ===================== 7) OPTIONAL VOICE ===================== */
+let voiceOn=false; const vBtn=document.getElementById("voiceBtn");
+function stopSpeech(){ if("speechSynthesis" in window) speechSynthesis.cancel(); }
+vBtn.onclick=()=>{ voiceOn=!voiceOn; vBtn.textContent="Voice: "+(voiceOn?"on":"off"); vBtn.setAttribute("aria-pressed",voiceOn);
+  if(!voiceOn){ stopSpeech(); if(state==="speaking") setState("idle"); }
+  if(voiceOn && !("speechSynthesis" in window)){ voiceOn=false; vBtn.textContent="Voice: unsupported"; } };
+function speak(text){
+  if(!("speechSynthesis" in window)) return false;
+  const u=new SpeechSynthesisUtterance(text.replace(/\[([^\]]+)\]\([^)]*\)/g,"$1").replace(/[*_`#]/g,"").slice(0,600));
+  u.onstart=()=>setState("speaking"); u.onend=u.onerror=()=>{ if(state==="speaking") setState("idle"); };
+  speechSynthesis.speak(u); return true;
+}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition; const micBtn=document.getElementById("mic"); let rec=null;
+micBtn.onclick=()=>{
+  if(!SR){ addMsg("Voice input isn't supported in this browser. You can type instead.","a err"); return; }
+  if(recOn){ rec.abort(); return; }
+  rec=new SR(); rec.lang="en-US"; rec.interimResults=true;
+  rec.onstart=()=>{ recOn=true; micBtn.classList.add("on"); setState("listening"); };
+  rec.onresult=e=>{ inp.value=[...e.results].map(r=>r[0].transcript).join(""); };
+  rec.onerror=e=>{ addMsg(e.error==="not-allowed"?"Microphone permission was denied. You can type instead.":"Voice input stopped ("+e.error+").","a err"); };
+  rec.onend=()=>{ recOn=false; micBtn.classList.remove("on"); if(!busy) setState("idle"); };
+  rec.start();
+};
+</script>
+</body>
+</html>

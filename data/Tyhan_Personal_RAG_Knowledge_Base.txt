@@ -1,0 +1,138 @@
+# Mosairul Alam Tyhan — Personal Knowledge Base
+**Purpose:** Concise, retrieval-friendly source for my portfolio self-introduction chatbot.  
+**Location:** Mymensingh, Bangladesh  
+**Professional direction:** Aspiring Machine Learning Engineer / AI-ML Engineer
+
+## 1. Introduction
+I am Mosairul Alam Tyhan, a Computer Science & Technology diploma student at Mymensingh Polytechnic Institute in Bangladesh. I build practical machine learning and AI applications, focusing on the complete workflow: data preparation, model training and evaluation, FastAPI APIs, Docker, and user-facing applications.
+
+My learning path has moved from traditional machine learning to deep learning and ML engineering. I am currently expanding into Generative AI, LLM applications, and Retrieval-Augmented Generation (RAG). My goal is to ship useful, reliable models—not just notebooks.
+
+## 2. Education & Training
+- **Institution:** Mymensingh Polytechnic Institute
+- **Program:** Diploma in Engineering, Computer Science & Technology
+- **Expected graduation:** 2027
+- **Training/certificates reported:** OSTAD — Data Science & Machine Learning with Python; Data Science Workshop for Research & Higher Studies.
+
+**Academic status note:** Semester information differs across older notes. Confirm the current semester before publishing it.
+
+## 3. Experience
+### FlyRank AI — Machine Learning Intern
+- **Arrangement:** Remote
+- **Period:** 2026–Present (as previously reported)
+- Participating in weekly assignments and research tasks involving AI concepts, ML fundamentals, technical problem-solving, guided learning, and AI tools.
+- The described work is currently learning/research-focused; do not claim independent production or team-project accomplishments without confirmation.
+
+### Earlier internship — Auspify Technologies 
+Working on a one-month remote internship focused on practical machine learning through six hands-on assessments using a Netflix dataset. Worked independently on projects covering NLP, movie recommendation systems, supervised and unsupervised learning, and time-series forecasting. Used Python and relevant ML libraries to explore datasets, build models, and apply machine learning concepts, with AI tools like ChatGPT supporting my learning and problem-solving
+
+### Decode Lab — Internship 
+
+Decodelabs · Internship
+Nov 2026 - Present · 1 mo
+Remote
+
+Currently expanding my industry experience as an AI Intern at Decode Labs, working remotely on artificial intelligence projects. I deliver scheduled project milestones, engage in mentor-guided technical sessions, and leverage machine learning methodologies to solve real-world problems.
+
+
+
+### Additional internship/project work (details to confirm)
+The user also mentioned joining an internship role involving building projects. The organization and whether this is separate from the internships above are not yet clear. Do not count it as another distinct internship until confirmed.
+
+## 4. Skills & Tools
+**Programming/data:** Python, SQL, NumPy, Pandas, data cleaning, preprocessing, EDA.  
+**Machine learning:** Scikit-learn, classification, regression, clustering, feature engineering, model evaluation, cross-validation, time-series forecasting, TF-IDF, cosine similarity.  
+**Deep learning/NLP:** TensorFlow, Keras, ANN, CNN, NLP, text classification and vectorization.  
+**Backend/application:** FastAPI, REST APIs, Pydantic, Uvicorn, Streamlit.  
+**Deployment/workflow:** Docker, Docker Hub, Render, Git, GitHub, Jupyter, Colab, Kaggle, VS Code, uv.  
+**Data visualization/database exposure:** Matplotlib, Seaborn, MySQL fundamentals and SQL queries.  
+**Currently learning:** Generative AI, LLM applications, RAG, embeddings, vector stores, document loading/splitting, retrieval methods, prompt templates, LangChain, and Gemini API integration.
+
+Skill descriptions should reflect practical exposure, not imply expert-level mastery.
+
+## 5. Projects
+Portfolio reports **10+ ML/AI projects built** and **5+ deployed ML projects**. These are portfolio-level totals; the individual examples below are selected highlights, not a complete inventory.
+
+### Freight Rate Predictor
+Predicts a posted freight rate from shipment details such as distance, weight, equipment, and date. Compared Linear Regression, Random Forest, and XGBoost; built a FastAPI backend with Pydantic validation, Streamlit interface, and Dockerized API.
+- **Reported assessment metrics:** Linear Regression R² ≈ 0.8651, MAE ≈ 140.65, RMSE ≈ 537.22; Random Forest MAE ≈ 129.68; XGBoost MAE ≈ 123.32, R² ≈ 0.8610.
+- Demo: https://freight-rate-predictor.streamlit.app/
+- Code: https://github.com/tyhan-data/Freight-Rate-Predictor
+- Docker Hub: https://hub.docker.com/r/tyhan55/freight-rate-api
+
+### NewsCortex AI
+Classifies news articles into World, Sports, Business, and Sci/Tech using TF-IDF (10,000 unigram/bigram features) and a TensorFlow/Keras neural network. Includes FastAPI probability-based predictions and a Streamlit app; Dockerized.
+- **Reported result:** About 91% test accuracy on 120K+ AG News articles.
+- Demo: https://newscortex-mat.streamlit.app/
+- Code: https://github.com/tyhan-data/news-topic-classification-ann
+- Docker Hub: https://hub.docker.com/r/tyhan55/newscortex-api
+
+### Heart Disease Predictor
+A classification model that estimates an outcome/risk according to its training target and returns a prediction with probability through FastAPI. Uses Pydantic validation and a Streamlit client; packaged in Docker.
+- Demo: https://heart-disease-predictor-mat.streamlit.app/
+- Code: https://github.com/tyhan-data/heart-disease-predictor
+- Docker Hub: https://hub.docker.com/r/tyhan55/heart-api
+- **Safety note:** An educational prediction tool, not medical diagnosis.
+
+### CineMatch AI
+Content-based movie recommendation using TF-IDF and cosine similarity, with FastAPI backend, Streamlit frontend, and TMDB-related integration.
+- Demo: https://cinematch-ai-by-tyhan.streamlit.app/
+- Code: https://github.com/tyhan-data/cinematch-ai
+
+### Spam Detector API
+Classifies messages as spam or ham using CountVectorizer and Multinomial Naive Bayes; includes a REST API and Streamlit client.
+- **Reported accuracy:** About 98%.
+- Demo: https://spam-detector-mat.streamlit.app/
+- Code: https://github.com/tyhan-data/spam-detector
+
+### AI Resume Analyzer
+Compares a resume with a job description using TF-IDF similarity and presents ATS-oriented insights in Streamlit.
+- Demo: https://ai-resume-analyzer-tyhan.streamlit.app/
+- Code: https://github.com/tyhan-data/AI-Resume-Analyzer
+
+### PixelMind — CIFAR-10 CNN
+CNN image classifier for the ten CIFAR-10 categories, with prediction confidence scores.
+- Demo: https://pixelmind-cifar10-classifier.streamlit.app/
+- Code: https://github.com/tyhan-data/pixelmind-cifar10-classifier
+
+### Other projects reported
+- **Ames Housing Price Prediction:** CatBoost regression; reported R² around 0.93.
+- **Salary Prediction:** K-Nearest Neighbors regression project.
+
+## 6. Internship Assignment Experience
+Netflix-related assignment work previously documented under an internship entry:
+- **Content recommendation:** TF-IDF and cosine similarity on a Netflix catalog.
+- **Audience rating/type classification:** Tested Logistic Regression, Decision Tree, Random Forest, and XGBoost. Rating prediction was around 50%; a separate type-classification experiment was around 77% accuracy. These are different tasks.
+- **Content segmentation:** K-Means, genre multi-label encoding, elbow and silhouette methods; explored three broad clusters.
+- **Trend forecasting:** Date/time features and lag variables with Random Forest, walk-forward evaluation, and recursive 12-month forecasting. Reported R²: 0.8901; MAE: 13.1405; RMSE: 24.1179.
+- **Advanced content-success analytics:** The available metadata lacked verified outcome labels such as views, watch hours, revenue, or engagement. A reliable success predictor could not be established from that data alone.
+
+**Attribution note:** Confirm the organization and final completion status of these assignments before associating every task with a specific internship.
+
+## 7. Current Learning & Personal RAG Portfolio Project
+I am learning to develop LLM applications with LangChain and retrieval components, including document loaders, text splitting, embeddings, Chroma, prompts, output parsers, and Google Gemini integration.
+
+I am building a **Personal AI Assistant for My Portfolio** so visitors can ask about my education, skills, projects, experience, and learning journey. The intended pipeline is: verified documents → chunks → embeddings/vector store → retrieval → LLM response.
+
+The chatbot should:
+- Answer from supported retrieved facts.
+- Say when information is unavailable or uncertain.
+- Distinguish completed work, ongoing learning, and goals.
+- Avoid revealing private or confidential information.
+- Never invent credentials, experience, project metrics, or links.
+
+## 8. Career Interests
+Interested in AI/ML internships, junior ML engineering roles, AI engineering internships, and entry-level AI application roles—preferably remote opportunities accessible from Bangladesh while continuing my studies.
+
+Areas I want to strengthen include backend systems, model serving, Docker, production-oriented ML workflows, cloud fundamentals, MLOps, and GenAI engineering.
+
+## 9. Public Profiles
+- **Portfolio:** https://mat-red.vercel.app/
+- **GitHub:** https://github.com/tyhan-data
+- **LinkedIn:** https://www.linkedin.com/in/mosairul-alam-tyhan/
+- **Docker Hub:** https://hub.docker.com/u/tyhan55
+- **Kaggle:** https://www.kaggle.com/mosairulalamtyhan
+
+
+## 10. Retrieval/Answering Guidance
+Use this knowledge base as the source of truth. Keep answers concise and directly relevant. Do not merge unrelated metrics or count assignments as separate projects automatically. If asked for exact internship count, employer names, dates, certificate details, or current semester, answer only after those fields are confirmed. Prefer linking the relevant project demo or repository when it exists. Do not disclose personal phone number or other private contact information.

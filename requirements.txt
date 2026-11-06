@@ -1,0 +1,10 @@
+langchain
+langchain-core
+langchain-community
+langchain-google-genai
+langchain-chroma
+chromadb
+pymupdf
+python-dotenv
+fastapi
+uvicorn[standard]
