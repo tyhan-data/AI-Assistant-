@@ -28,7 +28,8 @@ DB_PATH = BASE_DIR / "chroma_db"
 
 # Initialize embedding model
 embedding = GoogleGenerativeAIEmbeddings(
-    model="gemini-embedding-001"
+    model="gemini-embedding-001",
+    api_version = 'v1beta'
 )
 
 
@@ -54,7 +55,8 @@ retriever = vector_store.as_retriever(
 # Initialize LLM
 llm = ChatGoogleGenerativeAI(
     model="gemini-3-flash-preview",
-    temperature=0.5
+    temperature=0.5,
+    api_version="v1beta"
 )
 
 

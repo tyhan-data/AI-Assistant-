@@ -21,7 +21,8 @@ DB_PATH = BASE_DIR / "chroma_db"
 
 # Initialize embedding model
 embedding = GoogleGenerativeAIEmbeddings(
-    model="gemini-embedding-001"
+    model="gemini-embedding-001",
+    api_version="v1beta"
 )
 
 
